@@ -1,12 +1,12 @@
 CREATE TYPE frequency_enum AS ENUM ('daily', 'weekly', 'monthly');
 CREATE TYPE projections_enum AS ENUM ('EPSG:4326', 'EPSG:3857');
-CREATE TYPE extension_enum AS ENUM ('.tif');  -- Add this enum for extensions
+CREATE TYPE extension_enum AS ENUM ('.tif');
 
 CREATE TABLE datasets (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     frequency frequency_enum,
-    extension extension_enum,          -- Use enum here
+    extension extension_enum,
     projections projections_enum,
     paused BOOLEAN DEFAULT FALSE,
     rgb BOOLEAN DEFAULT FALSE,
