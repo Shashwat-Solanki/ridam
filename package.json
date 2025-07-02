@@ -11,6 +11,8 @@
     "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.6",
     "core-js": "^3.8.3",
+    "highcharts": "^12.3.0",
+    "highcharts-vue": "^2.0.1",
     "vue": "^3.2.13"
   },
   "devDependencies": {
