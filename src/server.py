@@ -7,9 +7,6 @@ import json
 app = Flask(__name__)
 CORS(app)
 
-# ──────────────────────────────────────────────────────────
-# DB CONNECTION (update password before running!)
-# ──────────────────────────────────────────────────────────
 try:
     conn = psycopg.connect(
         "dbname=ridam user=postgres password=Singh@786",
@@ -21,9 +18,6 @@ except Exception as e:
     print("❌  Connection failed:", e)
     raise
 
-# ──────────────────────────────────────────────────────────
-# FIELD MAP  UI‑label → SQL identifier or JSON path
-# ──────────────────────────────────────────────────────────
 FIELD_MAP = {
     "Name":          sql.Identifier("name"),
     "Frequency":     sql.Identifier("frequency"),
@@ -38,8 +32,6 @@ FIELD_MAP = {
     "Tags":          sql.Identifier("tags"),
     "Theme ID":      sql.Identifier("theme_id"),
     "Sub-Theme ID":  sql.Identifier("sub_theme_id"),
-
-    # metadata JSONB paths
     "Location":          sql.SQL("metadata ->> 'Location'"),
     "City":              sql.SQL("metadata ->> 'City'"),
     "Contact Person":    sql.SQL("metadata ->> 'Contact_Person'"),
@@ -54,9 +46,6 @@ def map_field(label: str) -> sql.SQL:
         raise ValueError(f"Unknown field: {label}")
     return FIELD_MAP[label]
 
-# ──────────────────────────────────────────────────────────
-# ROUTE DISPATCHER
-# ──────────────────────────────────────────────────────────
 @app.route("/", methods=["POST"])
 def handle_request():
     data = request.get_json(force=True)
@@ -67,12 +56,13 @@ def handle_request():
             return handle_manage(data)
         case "dashboard":
             return handle_dashboard()
+        case "edit":
+            return handle_edit()
+        case "delete":
+            return handle_delete()
         case _:
             return jsonify({"status": "error", "message": "Unknown request type"}), 400
 
-# ──────────────────────────────────────────────────────────
-# REGISTER HANDLER
-# ──────────────────────────────────────────────────────────
 def handle_register(data: dict):
     try:
         record = {
@@ -113,9 +103,6 @@ def handle_register(data: dict):
         conn.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# ──────────────────────────────────────────────────────────
-# MANAGE HANDLER (dynamic SELECT)
-# ──────────────────────────────────────────────────────────
 def handle_manage(data: dict):
     view_entries = data.get("viewEntries", [])
     sort_entries = data.get("sortEntries", [])
@@ -143,34 +130,24 @@ def handle_manage(data: dict):
         conn.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# ──────────────────────────────────────────────────────────
-# DASHBOARD HANDLER
-# ──────────────────────────────────────────────────────────
 def handle_dashboard():
     try:
-
-        # 6. frequency counts
         cur.execute("SELECT frequency, COUNT(*) FROM datasets GROUP BY frequency")
         frequency_counts = {r[0] or "Unknown": r[1] for r in cur.fetchall()}
 
-        # 1. total datasets
         cur.execute("SELECT COUNT(*) FROM datasets")
         total_tables = cur.fetchone()[0]
 
-        # 2. last 10 datasets - get all columns dynamically
         cur.execute("SELECT * FROM datasets ORDER BY id DESC LIMIT 10")
         cols = [c.name for c in cur.description]
         last10 = [dict(zip(cols, r)) for r in cur.fetchall()]
 
-        # 3. tag counts
         cur.execute("SELECT tag, COUNT(*) FROM (SELECT unnest(tags) AS tag FROM datasets) AS x GROUP BY tag")
         tag_counts = {r[0]: r[1] for r in cur.fetchall()}
 
-        # 4. theme counts
         cur.execute("SELECT theme_id, COUNT(*) FROM datasets GROUP BY theme_id")
         theme_counts = {r[0] or "Unknown": r[1] for r in cur.fetchall()}
 
-        # 5. category counts
         cur.execute("SELECT category::text, COUNT(*) FROM datasets GROUP BY category")
         category_counts = {r[0]: r[1] for r in cur.fetchall()}
 
@@ -186,8 +163,69 @@ def handle_dashboard():
     except Exception as e:
         conn.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
+    
+def handle_edit():
+    try:
+        data = request.get_json()
+        if not data or data.get("type") != "edit":
+            return jsonify({"status": "error", "message": "Invalid request type"}), 400
+        
+        edited_dataset = data.get("value_edit")
+        if not edited_dataset or "id" not in edited_dataset:
+            return jsonify({"status": "error", "message": "Missing dataset id"}), 400
+        
+        dataset_id = edited_dataset.pop("id")
+        columns = edited_dataset.keys()
+        values = []
+        if not columns:
+            return jsonify({"status": "error", "message": "No fields to update"}), 400
+
+        for col in columns:
+            val = edited_dataset[col]
+            # Convert dict (metadata) to JSON string for JSONB columns
+            if isinstance(val, dict):
+                val = json.dumps(val)
+            values.append(val)
+
+        set_clause = ", ".join([f"{col} = %s" for col in columns])
+        query = f"UPDATE datasets SET {set_clause} WHERE id = %s RETURNING *;"
+
+        cur.execute(query, values + [dataset_id])
+        updated_row = cur.fetchone()
+        conn.commit()
+
+        if updated_row:
+            # Convert JSON string metadata back to dict before returning if needed
+            if 'metadata' in updated_row and updated_row['metadata']:
+                updated_row['metadata'] = json.loads(updated_row['metadata'])
+            return jsonify({"status": "success", "message": "Dataset updated", "data": updated_row}), 200
+        else:
+            return jsonify({"status": "error", "message": "Dataset not found"}), 404
+
+    except Exception as e:
+        print("Error handling edit:", e)
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 
-# ──────────────────────────────────────────────────────────
+def handle_delete():
+    try:
+        data = request.get_json()
+        dataset_id = data.get("id")
+        if not dataset_id:
+            return jsonify({"status": "error", "message": "Missing dataset id"}), 400
+        
+        cur.execute("DELETE FROM datasets WHERE id = %s RETURNING id;", (dataset_id,))
+        deleted = cur.fetchone()
+        if deleted:
+            conn.commit()
+            return jsonify({"status": "success", "message": "Dataset deleted"}), 200
+        else:
+            return jsonify({"status": "error", "message": "Dataset not found"}), 404
+
+    except Exception as e:
+        print("Error handling delete:", e)
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True)

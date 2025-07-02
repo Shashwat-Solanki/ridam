@@ -135,19 +135,74 @@
       Tables will be displayed here
     </div>
 
-    <div v-else class="table-responsive mt-4">
+    <div
+      v-else
+      class="table-wrapper mt-4"
+      style="max-height: 450px; overflow-y: auto; overflow-x: auto">
       <table
-        class="table table-bordered table-sm table-striped small text-dark">
+        class="table table-bordered table-sm table-striped small text-dark"
+        style="min-width: 900px">
         <thead class="table-light">
           <tr>
             <th v-for="(value, key) in queryResults[0]" :key="key">
               {{ key }}
             </th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(row, index) in queryResults" :key="index">
-            <td v-for="(value, key) in row" :key="key">{{ value }}</td>
+            <td v-for="(value, key) in row" :key="key">
+              <template v-if="editIndex === index">
+                <textarea
+                  v-if="key === 'metadata'"
+                  v-model="editedRow[key]"
+                  class="form-control form-control-sm"
+                  rows="4"
+                  style="
+                    font-family: monospace;
+                    white-space: pre-wrap;
+                  "></textarea>
+                <input
+                  v-else
+                  v-model="editedRow[key]"
+                  class="form-control form-control-sm" />
+              </template>
+              <template v-else>
+                {{ key === "metadata" ? JSON.stringify(value) : value }}
+              </template>
+            </td>
+            <td>
+              <template v-if="editIndex === index">
+                <button
+                  class="btn btn-sm btn-success me-1"
+                  @click="saveEdit(index)">
+                  Save
+                </button>
+                <button
+                  class="btn btn-sm btn-secondary me-1"
+                  @click="cancelEdit">
+                  Cancel
+                </button>
+                <button
+                  class="btn btn-sm btn-danger"
+                  @click="deleteDataset(editedRow.id)">
+                  Delete
+                </button>
+              </template>
+              <template v-else>
+                <button
+                  class="btn btn-sm btn-primary me-2"
+                  @click="startEdit(index)">
+                  Edit
+                </button>
+                <button
+                  class="btn btn-sm btn-danger"
+                  @click="deleteDataset(row.id)">
+                  Delete
+                </button>
+              </template>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -184,6 +239,10 @@ const viewEntries = ref([]);
 const sortEntries = ref([]);
 const queryResults = ref([]);
 let idCounter = 0;
+
+// Editing related
+const editIndex = ref(-1);
+const editedRow = ref({});
 
 function addFieldOnly() {
   viewEntries.value.push({ id: idCounter++, field: "" });
@@ -243,9 +302,89 @@ async function handleSubmit() {
     alert("Error occurred during data fetching");
   }
 }
+
+function startEdit(index) {
+  editIndex.value = index;
+  editedRow.value = JSON.parse(JSON.stringify(queryResults.value[index]));
+
+  // Convert metadata object to string for editing
+  if (
+    editedRow.value.metadata &&
+    typeof editedRow.value.metadata === "object"
+  ) {
+    editedRow.value.metadata = JSON.stringify(
+      editedRow.value.metadata,
+      null,
+      2
+    );
+  }
+}
+
+function cancelEdit() {
+  editIndex.value = -1;
+  editedRow.value = {};
+}
+
+async function saveEdit(index) {
+  try {
+    // Try to parse metadata JSON string
+    if (editedRow.value.metadata) {
+      editedRow.value.metadata = JSON.parse(editedRow.value.metadata);
+    }
+
+    const response = await fetch("http://127.0.0.1:5000", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "edit",
+        value_edit: editedRow.value,
+      }),
+    });
+
+    const result = await response.json();
+    if (result.status === "success") {
+      queryResults.value[index] = JSON.parse(JSON.stringify(editedRow.value));
+      alert("Successfully edited");
+      cancelEdit();
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (err) {
+    console.error("Edit error:", err);
+    alert(
+      "Error occurred while saving the edit. Make sure metadata is valid JSON."
+    );
+  }
+}
+
+async function deleteDataset(id) {
+  if (!confirm("Are you sure you want to delete this dataset?")) return;
+  try {
+    const response = await fetch("http://127.0.0.1:5000", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "delete", id }),
+    });
+    const result = await response.json();
+    if (result.status === "success") {
+      alert("Dataset deleted successfully");
+      // Refresh your dataset list by calling handleSubmit or your fetch function again
+      await handleSubmit();
+    } else {
+      alert("Delete failed: " + result.message);
+    }
+  } catch (error) {
+    alert("Delete error: " + error.message);
+  }
+}
 </script>
+
 <style scoped>
 /* minimal tweaks */
+.table-responsive {
+  -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS */
+}
+
 #manag {
   height: 82vh;
   overflow-y: auto;
