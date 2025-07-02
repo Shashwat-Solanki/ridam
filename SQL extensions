@@ -1,6 +1,6 @@
 CREATE TYPE frequency_enum AS ENUM ('daily', 'weekly', 'monthly');
 CREATE TYPE projections_enum AS ENUM ('EPSG:4326', 'EPSG:3857');
-CREATE TYPE extension_enum AS ENUM ('.tif');
+CREATE TYPE extension_enum AS ENUM ('tif');
 
 CREATE TABLE datasets (
     id SERIAL PRIMARY KEY,
@@ -19,3 +19,30 @@ CREATE TABLE datasets (
     sub_theme_id INTEGER,
     metadata JSONB
 );
+
+//Dummy Data
+INSERT INTO datasets (
+  name, frequency, extension, projections,
+  paused, rgb, category, band_info, aux_data, remarks, tags,
+  theme_id, sub_theme_id, metadata
+) VALUES
+('Dataset A', 'daily', 'tif', 'EPSG:4326', false, true, false, 'Band1', 'Aux1', 'No remarks', ARRAY['tag1','tag2'], 1, 11, '{"Location":"New York","City":"NYC","Contact_Person":"Alice","Organization":"OrgA","Mailing_Address":"123 Street","Country":"USA","Contact_Telephone":"1234567890"}'::jsonb),
+('Dataset B', 'weekly', 'jpg', 'EPSG:3857', true, false, true, 'Band2', 'Aux2', 'Check data', ARRAY['tag3'], 2, 12, '{"Location":"Los Angeles","City":"LA","Contact_Person":"Bob","Organization":"OrgB","Mailing_Address":"456 Avenue","Country":"USA","Contact_Telephone":"0987654321"}'::jsonb),
+('Dataset C', 'monthly', 'png', 'EPSG:4326', false, true, false, 'Band3', 'Aux3', 'Reviewed', ARRAY['tag1','tag4'], 1, 13, '{"Location":"Chicago","City":"Chicago","Contact_Person":"Charlie","Organization":"OrgC","Mailing_Address":"789 Blvd","Country":"USA","Contact_Telephone":"1112223333"}'::jsonb),
+('Dataset D', 'daily', 'tif', 'EPSG:4326', true, false, true, 'Band4', 'Aux4', 'Urgent', ARRAY['tag2'], 2, 11, '{"Location":"Houston","City":"Houston","Contact_Person":"David","Organization":"OrgD","Mailing_Address":"101 Road","Country":"USA","Contact_Telephone":"2223334444"}'::jsonb),
+('Dataset E', 'weekly', 'tif', 'EPSG:3857', false, true, false, 'Band5', 'Aux5', 'New entry', ARRAY['tag3','tag5'], 1, 14, '{"Location":"Phoenix","City":"Phoenix","Contact_Person":"Eve","Organization":"OrgE","Mailing_Address":"202 Lane","Country":"USA","Contact_Telephone":"3334445555"}'::jsonb),
+('Dataset F', 'monthly', 'jpg', 'EPSG:4326', true, false, true, 'Band6', 'Aux6', 'Verify soon', ARRAY['tag6'], 3, 15, '{"Location":"Philadelphia","City":"Philly","Contact_Person":"Frank","Organization":"OrgF","Mailing_Address":"303 Circle","Country":"USA","Contact_Telephone":"4445556666"}'::jsonb),
+('Dataset G', 'daily', 'png', 'EPSG:4326', false, true, false, 'Band7', 'Aux7', 'Stable', ARRAY['tag1','tag7'], 2, 12, '{"Location":"San Antonio","City":"SA","Contact_Person":"Grace","Organization":"OrgG","Mailing_Address":"404 Parkway","Country":"USA","Contact_Telephone":"5556667777"}'::jsonb),
+('Dataset H', 'weekly', 'tif', 'EPSG:3857', true, false, true, 'Band8', 'Aux8', 'Review needed', ARRAY['tag8'], 1, 13, '{"Location":"San Diego","City":"SD","Contact_Person":"Hank","Organization":"OrgH","Mailing_Address":"505 Terrace","Country":"USA","Contact_Telephone":"6667778888"}'::jsonb),
+('Dataset I', 'monthly', 'jpg', 'EPSG:4326', false, true, false, 'Band9', 'Aux9', 'Pending', ARRAY['tag9'], 3, 14, '{"Location":"Dallas","City":"Dallas","Contact_Person":"Ivy","Organization":"OrgI","Mailing_Address":"606 Court","Country":"USA","Contact_Telephone":"7778889999"}'::jsonb),
+('Dataset J', 'daily', 'png', 'EPSG:4326', true, false, true, 'Band10', 'Aux10', 'Important', ARRAY['tag10'], 2, 15, '{"Location":"San Jose","City":"SJ","Contact_Person":"Jack","Organization":"OrgJ","Mailing_Address":"707 Drive","Country":"USA","Contact_Telephone":"8889990000"}'::jsonb),
+('Dataset K', 'weekly', 'tif', 'EPSG:3857', false, true, false, 'Band11', 'Aux11', 'Checked', ARRAY['tag11'], 1, 11, '{"Location":"Austin","City":"Austin","Contact_Person":"Kim","Organization":"OrgK","Mailing_Address":"808 Plaza","Country":"USA","Contact_Telephone":"9990001111"}'::jsonb),
+('Dataset L', 'monthly', 'jpg', 'EPSG:4326', true, false, true, 'Band12', 'Aux12', 'Confirmed', ARRAY['tag12'], 2, 12, '{"Location":"Jacksonville","City":"Jacksonville","Contact_Person":"Leo","Organization":"OrgL","Mailing_Address":"909 Street","Country":"USA","Contact_Telephone":"0001112222"}'::jsonb),
+('Dataset M', 'daily', 'png', 'EPSG:4326', false, true, false, 'Band13', 'Aux13', 'To do', ARRAY['tag13'], 3, 13, '{"Location":"Fort Worth","City":"FW","Contact_Person":"Mia","Organization":"OrgM","Mailing_Address":"1010 Road","Country":"USA","Contact_Telephone":"1112223333"}'::jsonb),
+('Dataset N', 'weekly', 'tif', 'EPSG:3857', true, false, true, 'Band14', 'Aux14', 'Delayed', ARRAY['tag14'], 1, 14, '{"Location":"Columbus","City":"Columbus","Contact_Person":"Nina","Organization":"OrgN","Mailing_Address":"1111 Avenue","Country":"USA","Contact_Telephone":"2223334444"}'::jsonb),
+('Dataset O', 'monthly', 'jpg', 'EPSG:4326', false, true, false, 'Band15', 'Aux15', 'OK', ARRAY['tag15'], 2, 15, '{"Location":"Charlotte","City":"Charlotte","Contact_Person":"Oscar","Organization":"OrgO","Mailing_Address":"1212 Blvd","Country":"USA","Contact_Telephone":"3334445555"}'::jsonb),
+('Dataset P', 'daily', 'png', 'EPSG:4326', true, false, true, 'Band16', 'Aux16', 'Done', ARRAY['tag16'], 3, 11, '{"Location":"San Francisco","City":"SF","Contact_Person":"Pam","Organization":"OrgP","Mailing_Address":"1313 Lane","Country":"USA","Contact_Telephone":"4445556666"}'::jsonb),
+('Dataset Q', 'weekly', 'tif', 'EPSG:3857', false, true, false, 'Band17', 'Aux17', 'In progress', ARRAY['tag17'], 1, 12, '{"Location":"Indianapolis","City":"Indy","Contact_Person":"Quinn","Organization":"OrgQ","Mailing_Address":"1414 Circle","Country":"USA","Contact_Telephone":"5556667777"}'::jsonb),
+('Dataset R', 'monthly', 'jpg', 'EPSG:4326', true, false, true, 'Band18', 'Aux18', 'Finalized', ARRAY['tag18'], 2, 13, '{"Location":"Seattle","City":"Seattle","Contact_Person":"Ray","Organization":"OrgR","Mailing_Address":"1515 Parkway","Country":"USA","Contact_Telephone":"6667778888"}'::jsonb),
+('Dataset S', 'daily', 'png', 'EPSG:4326', false, true, false, 'Band19', 'Aux19', 'Archived', ARRAY['tag19'], 3, 14, '{"Location":"Denver","City":"Denver","Contact_Person":"Sue","Organization":"OrgS","Mailing_Address":"1616 Terrace","Country":"USA","Contact_Telephone":"7778889999"}'::jsonb),
+('Dataset T', 'weekly', 'tif', 'EPSG:3857', true, false, true, 'Band20', 'Aux20', 'Test data', ARRAY['tag20'], 1, 15, '{"Location":"Washington","City":"DC","Contact_Person":"Tom","Organization":"OrgT","Mailing_Address":"1717 Court","Country":"USA","Contact_Telephone":"8889990000"}'::jsonb);
