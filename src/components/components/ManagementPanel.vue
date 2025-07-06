@@ -3,44 +3,49 @@
     class="bg-light p-4 rounded shadow-sm"
     style="background-color: #1f2839"
     id="manag">
-    <!-- Header -->
+    <!-- ── controls row ── -->
     <div class="d-flex justify-content-between align-items-start mb-2 small">
-      <!-- View Entries -->
+      <!-- View fields -->
       <div class="mb-3">
-        <div class="mb-1 fw-bold small text-dark">View Fields:</div>
+        <div class="fw-bold small text-dark mb-1">View Fields:</div>
         <div class="mb-2">
-          <button class="btn btn-outline-dark btn-sm me-2">All</button>
+          <button
+            class="btn btn-outline-dark btn-sm me-2"
+            @click="viewEntries = []">
+            All
+          </button>
           <button class="btn btn-outline-dark btn-sm" @click="addFieldOnly">
             +
           </button>
         </div>
+
         <div
-          v-for="(entry, index) in viewEntries"
+          v-for="(entry, idx) in viewEntries"
           :key="entry.id"
-          class="d-flex align-items-center gap-2 mb-1 small text-dark">
+          class="d-flex align-items-center gap-2 mb-1 text-dark">
           <select
             v-model="entry.field"
             @change="handleFieldChange"
             class="form-select form-select-sm w-auto text-dark">
             <option disabled value="">-- Field --</option>
             <option
-              v-for="field in getAvailableFieldsForView(entry.field)"
-              :key="field"
-              :value="field">
-              {{ field }}
+              v-for="f in getAvailableFieldsForView(entry.field)"
+              :key="f"
+              :value="f">
+              {{ f }}
             </option>
           </select>
           <button
             class="btn btn-sm btn-danger"
-            @click="removeField(index, 'view')">
-            &times;
+            @click="removeField(idx, 'view')">
+            ×
           </button>
         </div>
       </div>
 
-      <!-- Sort Entries -->
+      <!-- Sort fields -->
       <div class="mb-3">
-        <div class="mb-1 fw-bold small text-dark">Sort Fields:</div>
+        <div class="fw-bold small text-dark mb-1">Sort Fields:</div>
         <div class="mb-2">
           <button class="btn btn-outline-dark btn-sm" @click="addFieldValue">
             +
@@ -48,28 +53,28 @@
         </div>
 
         <div
-          v-for="(entry, index) in sortEntries"
+          v-for="(entry, idx) in sortEntries"
           :key="entry.id"
-          class="sort-row d-flex align-items-center gap-2 mb-1 small text-dark">
+          class="d-flex align-items-center gap-2 mb-1 text-dark">
           <select
             v-model="entry.field"
             @change="handleFieldChange"
             class="form-select form-select-sm w-auto text-dark">
             <option disabled value="">-- Field --</option>
             <option
-              v-for="field in getAvailableFieldsForSort(entry.field)"
-              :key="field"
-              :value="field">
-              {{ field }}
+              v-for="f in getAvailableFieldsForSort(entry.field)"
+              :key="f"
+              :value="f">
+              {{ f }}
             </option>
           </select>
 
-          <!-- Dynamic Inputs -->
+          <!-- Dynamic value input -->
           <template v-if="entry.field === 'Frequency'">
             <select
               v-model="entry.value"
               class="form-select form-select-sm w-auto text-dark">
-              <option disabled value="">-- Select Frequency --</option>
+              <option disabled value="">-- Select --</option>
               <option value="daily">daily</option>
               <option value="weekly">weekly</option>
               <option value="monthly">monthly</option>
@@ -78,7 +83,6 @@
 
           <template v-else-if="entry.field === 'Extension'">
             <input
-              type="text"
               class="form-control form-control-sm w-auto text-dark"
               value=".tif"
               readonly
@@ -89,9 +93,9 @@
             <select
               v-model="entry.value"
               class="form-select form-select-sm w-auto text-dark">
-              <option disabled value="">-- Select Projection --</option>
-              <option value="epsg:4326">EPSG:4326</option>
-              <option value="3857">EPSG:3857</option>
+              <option disabled value="">-- Select --</option>
+              <option value="EPSG:4326">EPSG:4326</option>
+              <option value="EPSG:3857">EPSG:3857</option>
             </select>
           </template>
 
@@ -109,26 +113,25 @@
           <template v-else>
             <input
               v-model="entry.value"
-              type="text"
               class="form-control form-control-sm w-auto text-dark"
               placeholder="Value" />
           </template>
 
           <button
             class="btn btn-sm btn-danger"
-            @click="removeField(index, 'sort')">
-            &times;
+            @click="removeField(idx, 'sort')">
+            ×
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Submit -->
+    <!-- Submit (still here if user wants to refresh manually) -->
     <div class="text-center mt-3">
       <button class="btn btn-primary" @click="handleSubmit">Submit</button>
     </div>
 
-    <!-- Display Table Results -->
+    <!-- Results -->
     <div
       v-if="queryResults.length === 0"
       class="bg-secondary bg-opacity-10 p-5 text-muted text-center mt-4 rounded small">
@@ -138,45 +141,43 @@
     <div
       v-else
       class="table-wrapper mt-4"
-      style="max-height: 450px; overflow-y: auto; overflow-x: auto">
+      style="max-height: 450px; overflow: auto">
       <table
         class="table table-bordered table-sm table-striped small text-dark"
         style="min-width: 900px">
         <thead class="table-light">
           <tr>
-            <th v-for="(value, key) in queryResults[0]" :key="key">
-              {{ key }}
-            </th>
+            <th v-for="(v, k) in queryResults[0]" :key="k">{{ k }}</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(row, index) in queryResults" :key="index">
-            <td v-for="(value, key) in row" :key="key">
-              <template v-if="editIndex === index">
+          <tr v-for="(row, i) in queryResults" :key="i">
+            <td v-for="(v, k) in row" :key="k">
+              <template v-if="editIndex === i">
                 <textarea
-                  v-if="key === 'metadata'"
-                  v-model="editedRow[key]"
-                  class="form-control form-control-sm"
+                  v-if="k === 'metadata'"
+                  v-model="editedRow[k]"
                   rows="4"
+                  class="form-control form-control-sm"
                   style="
                     font-family: monospace;
                     white-space: pre-wrap;
                   "></textarea>
                 <input
                   v-else
-                  v-model="editedRow[key]"
+                  v-model="editedRow[k]"
                   class="form-control form-control-sm" />
               </template>
               <template v-else>
-                {{ key === "metadata" ? JSON.stringify(value) : value }}
+                {{ k === "metadata" ? JSON.stringify(v) : v }}
               </template>
             </td>
             <td>
-              <template v-if="editIndex === index">
+              <template v-if="editIndex === i">
                 <button
                   class="btn btn-sm btn-success me-1"
-                  @click="saveEdit(index)">
+                  @click="saveEdit(i)">
                   Save
                 </button>
                 <button
@@ -193,7 +194,7 @@
               <template v-else>
                 <button
                   class="btn btn-sm btn-primary me-2"
-                  @click="startEdit(index)">
+                  @click="startEdit(i)">
                   Edit
                 </button>
                 <button
@@ -211,9 +212,11 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 
+/* ---------- fields list ---------- */
 const allFields = [
+  "ID",
   "Name",
   "Frequency",
   "Extension",
@@ -223,9 +226,17 @@ const allFields = [
   "Category",
   "Band Info",
   "Aux Data",
+  "Remarks",
   "Tags",
   "Theme ID",
   "Sub-Theme ID",
+  "Product ID",
+  "Base Path",
+  "Create Directory",
+  "Pyramid ID",
+  "From Time",
+  "To Time",
+  "Pool",
   "Location",
   "City",
   "Contact Person",
@@ -235,53 +246,43 @@ const allFields = [
   "Contact Telephone",
 ];
 
+/* ---------- reactive state ---------- */
 const viewEntries = ref([]);
 const sortEntries = ref([]);
 const queryResults = ref([]);
 let idCounter = 0;
 
-// Editing related
+/* ---------- editing state ---------- */
 const editIndex = ref(-1);
 const editedRow = ref({});
 
+/* ---------- UI helper functions ---------- */
 function addFieldOnly() {
   viewEntries.value.push({ id: idCounter++, field: "" });
 }
-
 function addFieldValue() {
   sortEntries.value.push({ id: idCounter++, field: "", value: "" });
 }
-
-function removeField(index, type) {
-  if (type === "view") {
-    viewEntries.value.splice(index, 1);
-  } else {
-    sortEntries.value.splice(index, 1);
-  }
+function removeField(i, type) {
+  (type === "view" ? viewEntries : sortEntries).value.splice(i, 1);
 }
-
-function getAvailableFieldsForView(currentField) {
-  const selected = viewEntries.value
-    .map((e) => e.field)
-    .filter((f) => f && f !== currentField);
-  return allFields.filter((f) => !selected.includes(f));
+function getAvailableFields(arr, current) {
+  const picked = arr.map((e) => e.field).filter((f) => f && f !== current);
+  return allFields.filter((f) => !picked.includes(f));
 }
-
-function getAvailableFieldsForSort(currentField) {
-  const selected = sortEntries.value
-    .map((e) => e.field)
-    .filter((f) => f && f !== currentField);
-  return allFields.filter((f) => !selected.includes(f));
-}
-
+const getAvailableFieldsForView = (c) =>
+  getAvailableFields(viewEntries.value, c);
+const getAvailableFieldsForSort = (c) =>
+  getAvailableFields(sortEntries.value, c);
 function handleFieldChange() {
-  viewEntries.value = [...viewEntries.value];
+  viewEntries.value = [...viewEntries.value]; // force reactivity
   sortEntries.value = [...sortEntries.value];
 }
 
+/* ---------- fetch datasets with current filters/sorts ---------- */
 async function handleSubmit() {
   try {
-    const response = await fetch("http://127.0.0.1:5000", {
+    const r = await fetch("http://127.0.0.1:5000", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -290,34 +291,32 @@ async function handleSubmit() {
         sortEntries: sortEntries.value,
       }),
     });
-
-    const result = await response.json();
-    if (result.status === "success") {
-      queryResults.value = result.data;
+    const j = await r.json();
+    if (j.status === "success") {
+      queryResults.value = j.data;
     } else {
-      throw new Error(result.message);
+      throw new Error(j.message || "Failed to fetch data");
     }
-  } catch (err) {
-    console.error("Fetch error:", err);
-    alert("Error occurred during data fetching");
+  } catch (e) {
+    console.error("Fetch error:", e);
+    alert("Error fetching data");
   }
 }
 
-function startEdit(index) {
-  editIndex.value = index;
-  editedRow.value = JSON.parse(JSON.stringify(queryResults.value[index]));
+/* ---------- editing logic ---------- */
+function startEdit(i) {
+  editIndex.value = i;
+  editedRow.value = JSON.parse(JSON.stringify(queryResults.value[i]));
 
-  // Convert metadata object to string for editing
-  if (
-    editedRow.value.metadata &&
-    typeof editedRow.value.metadata === "object"
-  ) {
+  // Pretty print JSON fields
+  if (typeof editedRow.value.metadata === "object")
     editedRow.value.metadata = JSON.stringify(
       editedRow.value.metadata,
       null,
       2
     );
-  }
+  if (typeof editedRow.value.pool === "object")
+    editedRow.value.pool = JSON.stringify(editedRow.value.pool, null, 2);
 }
 
 function cancelEdit() {
@@ -325,71 +324,97 @@ function cancelEdit() {
   editedRow.value = {};
 }
 
-async function saveEdit(index) {
+async function saveEdit(i) {
   try {
-    // Try to parse metadata JSON string
-    if (editedRow.value.metadata) {
+    if (!confirm("Are you sure you want to save changes to this dataset?")) {
+      return;
+    }
+
+    if (editedRow.value.metadata)
       editedRow.value.metadata = JSON.parse(editedRow.value.metadata);
-    }
+    if (editedRow.value.pool)
+      editedRow.value.pool = JSON.parse(editedRow.value.pool);
 
-    const response = await fetch("http://127.0.0.1:5000", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "edit",
-        value_edit: editedRow.value,
-      }),
+    ["paused", "rgb", "category"].forEach((k) => {
+      if (k in editedRow.value && typeof editedRow.value[k] === "string")
+        editedRow.value[k] = editedRow.value[k].trim().toLowerCase() === "true";
     });
 
-    const result = await response.json();
-    if (result.status === "success") {
-      queryResults.value[index] = JSON.parse(JSON.stringify(editedRow.value));
-      alert("Successfully edited");
+    if (typeof editedRow.value.tags === "string") {
+      editedRow.value.tags = editedRow.value.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+    }
+
+    ["aux_data", "band_info", "remarks"].forEach((k) => {
+      if (editedRow.value[k] === "") editedRow.value[k] = null;
+    });
+
+    const payload = JSON.parse(JSON.stringify(editedRow.value));
+
+    const r = await fetch("http://127.0.0.1:5000", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "edit", value_edit: payload }),
+    });
+    const j = await r.json();
+
+    if (j.status === "success") {
+      queryResults.value[i] = payload;
       cancelEdit();
+      alert("Saved successfully!");
     } else {
-      throw new Error(result.message);
+      throw new Error(j.message);
     }
-  } catch (err) {
-    console.error("Edit error:", err);
-    alert(
-      "Error occurred while saving the edit. Make sure metadata is valid JSON."
-    );
+  } catch (e) {
+    console.error("Save failed:", e);
+    alert("Save failed – check JSON fields & booleans.");
   }
 }
 
-async function deleteDataset(id) {
-  if (!confirm("Are you sure you want to delete this dataset?")) return;
-  try {
-    const response = await fetch("http://127.0.0.1:5000", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "delete", id }),
-    });
-    const result = await response.json();
-    if (result.status === "success") {
-      alert("Dataset deleted successfully");
-      // Refresh your dataset list by calling handleSubmit or your fetch function again
-      await handleSubmit();
-    } else {
-      alert("Delete failed: " + result.message);
-    }
-  } catch (error) {
-    alert("Delete error: " + error.message);
+/* ---------- delete logic ---------- */
+function deleteDataset(id) {
+  if (!confirm("Are you sure you want to delete this dataset?")) {
+    return; // User cancelled, no delete
   }
+  fetch("http://127.0.0.1:5000/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      type: "delete",
+      id: id,
+    }),
+  })
+    .then((res) => {
+      if (!res.ok)
+        throw new Error(`Server responded with status ${res.status}`);
+      return res.json();
+    })
+    .then((data) => {
+      if (data.status === "success") {
+        alert("Deleted successfully!");
+        handleSubmit(); // <==== RELOAD the table data here
+      } else {
+        alert("Error: " + data.message);
+      }
+    })
+    .catch((err) => {
+      console.error("Delete failed:", err);
+    });
 }
+
+/* ---------- run initial fetch ---------- */
+onMounted(handleSubmit);
 </script>
 
 <style scoped>
-/* minimal tweaks */
-.table-responsive {
-  -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS */
-}
-
 #manag {
-  height: 82vh;
+  height: 75dvh;
   overflow-y: auto;
 }
-
 @media (max-width: 767px) {
   #manag {
     height: 62vh;
